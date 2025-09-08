@@ -1,9 +1,11 @@
 
 services:
-  api:
-    build: .
+  frontend:
+    build: 
+      context: ../frontend
+      dockerfile: frontend.Dockerfile
     ports:
-      - '8000:8000'
+      - '3002:80'
     volumes:
       - ./backend:/app
     depends_on:

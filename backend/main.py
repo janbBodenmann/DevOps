@@ -11,7 +11,7 @@ EXCHANGE_API = "https://api.exchangerate.host/convert"
 
 @app.post('/convert')
 def convert(amount: float = Body(...), source: str = Body(...), target: str = Body(...)):
-    # Anfrage an externe API
+   
     response = requests.get(EXCHANGE_API, params={"from": source, "to": target, "amount": amount})
     data = response.json()
     result = data.get("result", None)
