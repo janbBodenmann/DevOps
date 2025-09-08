@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Currency Converter</title>
+    <script>
+        async function convert() {
+            const amount = document.getElementById('amount').value;
+            const source = document.getElementById('source').value;
+            const target = document.getElementById('target').value;
+
+            const res = await fetch('/convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: parseFloat(amount), source, target })
+            });
+
+            const data = await res.json();
+            document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+        }
+    </script>
+</head>
+<body>
+    <h1>Currency Converter</h1>
+    <input id="amount" placeholder="Betrag" type="number" step="0.01">
+    <input id="source" placeholder="Von (z.B. USD)">
+    <input id="target" placeholder="Nach (z.B. EUR)">
+    <button onclick="convert()">Umrechnen</button>
+    <pre id="result"></pre>
+</body>
+</html>
