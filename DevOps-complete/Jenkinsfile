@@ -1,0 +1,27 @@
+
+pipeline {
+  agent any
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+    stage('Build') {
+      steps {
+        sh 'docker-compose -f docker-compose.yml build --pull --no-cache app'
+      }
+    }
+    stage('Unit Tests') {
+      steps {
+        sh 'docker run --rm -v $PWD/app:/app -w /app python:3.11-slim bash -c "pip install -r requirements.txt pytest && pytest -q"'
+      }
+    }
+    stage('Deploy') {
+      steps {
+        sh 'docker-compose -f docker-compose.yml up -d --remove-orphans --build'
+      }
+    }
+  }
+  post {
+    failure { archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true }
+  }
+}

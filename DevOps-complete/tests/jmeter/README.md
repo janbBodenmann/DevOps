@@ -1,0 +1,1 @@
+Place your JMeter .jmx test plans here. In CI you can run the jmeter container to execute them and publish results.

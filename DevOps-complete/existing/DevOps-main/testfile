@@ -1,0 +1,125 @@
+from fastapi import FastAPI, Body
+import requests
+
+app = FastAPI()
+
+conversions = []
+favorites = []
+last_conversion = None
+
+EXCHANGE_API = "https://api.exchangerate.host/convert"
+
+@app.post('/convert')
+def convert(amount: float = Body(...), source: str = Body(...), target: str = Body(...)):
+    # Anfrage an externe API
+    response = requests.get(EXCHANGE_API, params={"from": source, "to": target, "amount": amount})
+    data = response.json()
+    result = data.get("result", None)
+
+    global last_conversion
+    last_conversion = {
+        "amount": amount,
+        "source": source,
+        "target": target,
+        "result": result
+    }
+    conversions.append(last_conversion)
+    return last_conversion
+
+@app.get('/last-conversion')
+def get_last_conversion():
+    return last_conversion
+
+@app.post('/favorite')
+def add_favorite(source: str = Body(...), target: str = Body(...)):
+    favorite = {"source": source, "target": target}
+    favorites.append(favorite)
+    return favorite
+
+@app.get('/favorites')
+def get_favorites():
+    return favorites
+-------------------------
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Currency Converter</title>
+    <script>
+        async function convert() {
+            const amount = document.getElementById('amount').value;
+            const source = document.getElementById('source').value;
+            const target = document.getElementById('target').value;
+
+            const res = await fetch('/convert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: parseFloat(amount), source, target })
+            });
+
+            const data = await res.json();
+            document.getElementById('result').innerText = JSON.stringify(data, null, 2);
+        }
+    </script>
+</head>
+<body>
+    <h1>Currency Converter</h1>
+    <input id="amount" placeholder="Betrag" type="number" step="0.01">
+    <input id="source" placeholder="Von (z.B. USD)">
+    <input id="target" placeholder="Nach (z.B. EUR)">
+    <button onclick="convert()">Umrechnen</button>
+    <pre id="result"></pre>
+</body>
+</html>
+
+
+
+--------------
+
+
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/ .
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+
+--------------------------------------
+
+
+version: '3'
+services:
+  api:
+    build: ./docker
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - jenkins
+      - grafana
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    ports:
+      - '8080:8080'
+    volumes:
+      - jenkins_home:/var/jenkins_home
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - '3000:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
+volumes:
+  jenkins_home:
