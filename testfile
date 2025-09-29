@@ -1,1 +1,4 @@
 docker ps -q | xargs -r docker stop
+
+docker exec -it jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
