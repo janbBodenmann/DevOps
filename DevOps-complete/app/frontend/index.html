@@ -1,37 +1,112 @@
-
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><title>Microservice UI</title></head>
+<head>
+  <meta charset="utf-8">
+  <title>Microservice UI</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width:900px; margin:20px; }
+    section { border:1px solid #ddd; padding:12px; margin-bottom:12px; border-radius:6px; }
+    label { display:inline-block; width:90px; }
+    input[type="text"], input[type="number"] { width:150px; padding:4px; }
+    pre { background:#f6f6f6; padding:8px; border-radius:4px; }
+  </style>
+</head>
 <body>
-<h1>Minimal UI for Microservice</h1>
-<div>
+<h1>Minimal UI für Microservice</h1>
+
+<section>
   <h3>Health</h3>
   <button onclick="call('/health')">Health</button>
   <pre id="health"></pre>
-</div>
-<div>
+</section>
+
+<section>
   <h3>Create Item (POST /items)</h3>
   ID: <input id="id" type="number" value="1"> Name: <input id="name" value="example"> Value: <input id="value" value="1.2">
   <button onclick="createItem()">Create</button>
   <pre id="create"></pre>
-</div>
-<div>
+</section>
+
+<section>
   <h3>Get Item (GET /items/{id})</h3>
   ID: <input id="getid" type="number" value="1"><button onclick="getItem()">Get</button>
   <pre id="get"></pre>
-</div>
-<div>
+</section>
+
+<section>
   <h3>Compute (POST /compute)</h3>
   x: <input id="x" type="number" value="2"> y: <input id="y" type="number" value="3">
   <button onclick="compute()">Compute</button>
   <pre id="compute"></pre>
-</div>
+</section>
+
+<section>
+  <h3>Currency Converter</h3>
+  <div>
+    <label>From</label><input id="cur-from" type="text" value="USD"> 
+    <label>To</label><input id="cur-to" type="text" value="EUR">
+    <label>Amount</label><input id="cur-amount" type="number" value="100">
+    <button onclick="convert()">Convert (GET)</button>
+    <button onclick="convertPost()">Convert (POST)</button>
+  </div>
+  <pre id="convert-result"></pre>
+</section>
+
 <script>
 const base = location.origin.replace(/:\d+$/,'') + ':8000';
-async function call(path){ document.getElementById('health').innerText = await (await fetch(base+path)).text(); }
-async function createItem(){ const id=+document.getElementById('id').value; const name=document.getElementById('name').value; const value=+document.getElementById('value').value; const r=await fetch(base+'/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name,value})}); document.getElementById('create').innerText=await r.text(); }
-async function getItem(){ const id=+document.getElementById('getid').value; const r=await fetch(base+'/items/'+id); document.getElementById('get').innerText=await r.text(); }
-async function compute(){ const x=+document.getElementById('x').value; const y=+document.getElementById('y').value; const r=await fetch(base+'/compute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x,y})}); document.getElementById('compute').innerText=await r.text(); }
+
+// helper fetch for simple GET endpoints (returns text)
+async function call(path){ 
+  const r = await fetch(base+path)
+  const t = await r.text()
+  document.getElementById('health').innerText = t
+}
+
+async function createItem(){ 
+  const id=+document.getElementById('id').value; 
+  const name=document.getElementById('name').value; 
+  const value=+document.getElementById('value').value; 
+  const r=await fetch(base+'/items',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name,value})});
+  document.getElementById('create').innerText=await r.text(); 
+}
+
+async function getItem(){ 
+  const id=+document.getElementById('getid').value; 
+  const r=await fetch(base+'/items/'+id); 
+  document.getElementById('get').innerText=await r.text(); 
+}
+
+async function compute(){ 
+  const x=+document.getElementById('x').value; 
+  const y=+document.getElementById('y').value; 
+  const r=await fetch(base+'/compute',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({x,y})}); 
+  document.getElementById('compute').innerText=await r.text(); 
+}
+
+// Currency converter using GET
+async function convert(){
+  const from = document.getElementById('cur-from').value || 'USD';
+  const to = document.getElementById('cur-to').value || 'EUR';
+  const amount = document.getElementById('cur-amount').value || 1;
+  const url = `${base}/convert?from_currency=${encodeURIComponent(from)}&to_currency=${encodeURIComponent(to)}&amount=${encodeURIComponent(amount)}`;
+  const r = await fetch(url);
+  const json = await r.json();
+  document.getElementById('convert-result').innerText = JSON.stringify(json, null, 2);
+}
+
+// Currency converter using POST
+async function convertPost(){
+  const from = document.getElementById('cur-from').value || 'USD';
+  const to = document.getElementById('cur-to').value || 'EUR';
+  const amount = +document.getElementById('cur-amount').value || 1;
+  const r = await fetch(base + '/convert', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({from_currency: from, to_currency: to, amount: amount})
+  });
+  const json = await r.json();
+  document.getElementById('convert-result').innerText = JSON.stringify(json, null, 2);
+}
 </script>
 </body>
 </html>
