@@ -6,6 +6,8 @@ services:
     container_name: student_app
     ports:
       - "8000:8000"
+    volumes:
+      - ./app:/app
     restart: unless-stopped
     networks:
       - devops_net

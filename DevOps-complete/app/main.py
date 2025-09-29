@@ -1,11 +1,15 @@
 
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel
 import requests
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
-from fastapi.responses import PlainTextResponse
+
 
 app = FastAPI(title="Student Microservice - DevOps Ready")
+
+app.mount("/frontend", StaticFiles(directory="/app/frontend"), name="frontend")
 
 REQUEST_COUNT = Counter("app_requests_total", "Total HTTP requests")
 REQUEST_LATENCY = Histogram("app_request_latency_seconds", "Request latency seconds")
