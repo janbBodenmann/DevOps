@@ -1,27 +1,72 @@
-
 pipeline {
   agent any
+  environment {
+    IMAGE_NAME = 'app'  // Name of the Docker image
+    DOCKER_COMPOSE_FILE = 'docker-compose.yml'
+  }
   stages {
     stage('Checkout') {
-      steps { checkout scm }
+      steps {
+        checkout scm  // Checkout code from the repository
+      }
     }
     stage('Build') {
       steps {
-        sh 'docker-compose -f docker-compose.yml build --pull --no-cache app'
+        // Build the Docker image for the application using docker-compose
+        sh 'docker-compose -f ${DOCKER_COMPOSE_FILE} build --pull --no-cache ${IMAGE_NAME}'
+      }
+    }
+    stage('Linting') {
+      steps {
+        // Lint the Python code with flake8
+        sh 'docker run --rm -v $PWD/app:/app -w /app python:3.11-slim bash -c "pip install flake8 && flake8 ."'
       }
     }
     stage('Unit Tests') {
       steps {
+        // Run unit tests using pytest
         sh 'docker run --rm -v $PWD/app:/app -w /app python:3.11-slim bash -c "pip install -r requirements.txt pytest && pytest -q"'
+      }
+    }
+    stage('Integration Tests') {
+      steps {
+        // Run integration tests (assuming they are in the 'tests/integration' directory)
+        sh 'docker run --rm -v $PWD/app:/app -w /app python:3.11-slim bash -c "pip install -r requirements.txt pytest && pytest tests/integration"'
+      }
+    }
+    stage('Build Docker Image') {
+      steps {
+        // Build the Docker image for the app (optional, if you need to manually build)
+        sh 'docker build -t ${IMAGE_NAME}:latest .'
       }
     }
     stage('Deploy') {
       steps {
-        sh 'docker-compose -f docker-compose.yml up -d --remove-orphans --build'
+        // Deploy the application using docker-compose
+        sh 'docker-compose -f ${DOCKER_COMPOSE_FILE} up -d --remove-orphans --build'
+      }
+    }
+    stage('Test Deployment') {
+      steps {
+        // Perform a health check on the deployed application
+        sh 'curl -sS http://localhost:8000/health || exit 1'
       }
     }
   }
   post {
-    failure { archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true }
+    always {
+      // Cleanup Docker resources to free up space
+      sh 'docker system prune -f'
+    }
+    success {
+      // Archive test results and generate JUnit reports
+      archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true
+      junit '**/test-results/*.xml'  // Display JUnit test results in Jenkins
+    }
+    failure {
+      // Archive test results in case of failure
+      archiveArtifacts artifacts: '**/test-results/*.xml', allowEmptyArchive: true
+      junit '**/test-results/*.xml'
+    }
   }
 }
